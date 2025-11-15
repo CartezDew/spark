@@ -3,7 +3,7 @@
  * Handles GET /api/youtube/top
  */
 
-import { fetchTopVideos } from '../../backend/services/youtubeService.js';
+import { fetchTopVideos } from '../../../backend/services/youtubeService.js';
 
 export const handler = async (event, context) => {
   // CORS headers

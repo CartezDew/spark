@@ -3,7 +3,7 @@
  * Handles GET /api/twitch/top
  */
 
-import { fetchTopStreams } from '../../backend/services/twitchService.js';
+import { fetchTopStreams } from '../../../backend/services/twitchService.js';
 
 export const handler = async (event, context) => {
   // CORS headers
