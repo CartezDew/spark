@@ -12,10 +12,10 @@ export const config = {
   apiMode: import.meta.env.VITE_API_MODE || 'backend',
   
   // Backend API URL - uses environment variable in production
-  // On Netlify, functions are available at /api/* automatically
-  // For local dev, use localhost:3001
+  // Default: Use Netlify backend even in local development
+  // To use local backend, set VITE_BACKEND_API_URL=http://localhost:3001/api
   backendApiUrl: import.meta.env.VITE_BACKEND_API_URL || 
-    (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api'),
+    'https://cool-biscochitos-b96e4c.netlify.app/api',
   
   // YouTube API Configuration (only needed if not using backend)
   // Get your API key from: https://console.cloud.google.com/
