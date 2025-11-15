@@ -117,6 +117,12 @@ const fetchFromBackend = async (region = 'US', school = null, category = null, p
   try {
     console.log('[Backend] Fetching videos from backend API...');
     
+    // Check if backend URL is localhost in production (won't work)
+    if (typeof window !== 'undefined' && config.backendApiUrl.includes('localhost') && window.location.hostname !== 'localhost') {
+      console.warn('[Backend] Backend URL is localhost but we are in production. Falling back to Invidious.');
+      throw new Error('Backend not configured for production. Please set VITE_BACKEND_API_URL in Netlify.');
+    }
+    
     // Use category if provided, otherwise rotate through categories
     const selectedCategory = category || CAREER_CATEGORIES[Math.floor(Math.random() * CAREER_CATEGORIES.length)];
     
@@ -128,9 +134,14 @@ const fetchFromBackend = async (region = 'US', school = null, category = null, p
     
     console.log(`[Backend] Calling: ${url}`);
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      // Add timeout for production
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Backend] API error ${response.status}:`, errorText);
       throw new Error(`Backend API error: ${response.status}`);
     }
     
@@ -166,6 +177,25 @@ const fetchFromBackend = async (region = 'US', school = null, category = null, p
     };
   } catch (error) {
     console.error('[Backend] Error fetching from backend:', error);
+    
+    // If we're in production and backend fails, try to use Invidious if available
+    if (config.apiMode === 'backend' && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      console.log('[Backend] Production backend failed. Attempting to use Invidious fallback...');
+      try {
+        const invidiousVideos = await fetchInvidiousTrending(region);
+        if (invidiousVideos && invidiousVideos.length > 0) {
+          console.log(`[Backend] Using ${invidiousVideos.length} videos from Invidious fallback`);
+          return {
+            videos: invidiousVideos,
+            nextPageToken: null,
+            category: null
+          };
+        }
+      } catch (invError) {
+        console.error('[Backend] Invidious fallback also failed:', invError);
+      }
+    }
+    
     console.log('[Backend] Falling back to mock data');
     // Fallback to mock data if backend fails
     const mockVideos = fetchMockYouthContent(region, school);
@@ -268,6 +298,37 @@ const fetchFromYouTubeYouthAPI = async (queries) => {
   }
   
   return allVideos;
+};
+
+/**
+ * Fetch trending videos from Invidious (fallback for production)
+ */
+const fetchInvidiousTrending = async (region = 'US') => {
+  try {
+    const url = `${config.invidiousInstance}/api/v1/trending?region=${region}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.slice(0, config.maxVideosPerLoad).map(video => ({
+        id: video.videoId,
+        title: video.title,
+        channel: video.author,
+        description: video.description?.substring(0, 150) + '...' || 'No description available',
+        thumbnail: video.videoThumbnails?.[4]?.url || video.videoThumbnails?.[0]?.url,
+        views: formatNumber(video.viewCount || 0),
+        likes: formatNumber(video.likeCount || 0),
+        comments: formatNumber(0),
+        careerCategory: 'creative_career',
+        tags: [],
+        isLocalArtist: false,
+        category: null
+      }));
+    }
+  } catch (error) {
+    console.error('[Invidious] Error fetching trending:', error);
+  }
+  return [];
 };
 
 /**
