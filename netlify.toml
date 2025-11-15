@@ -7,7 +7,17 @@
   NODE_VERSION = "18"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/youtube/top"
+  to = "/.netlify/functions/youtube-top"
+  status = 200
+
+[[redirects]]
+  from = "/api/twitch/top"
+  to = "/.netlify/functions/twitch-top"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
   status = 200
 
