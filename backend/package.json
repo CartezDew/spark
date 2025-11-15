@@ -1,0 +1,21 @@
+{
+  "name": "spark-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Backend API for Spark career discovery app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["youtube", "twitch", "api", "express"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5"
+  }
+}
+
