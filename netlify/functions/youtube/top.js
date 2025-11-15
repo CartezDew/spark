@@ -36,6 +36,23 @@ export const handler = async (event, context) => {
   }
 
   try {
+    // Check if API key is available
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (!apiKey) {
+      console.error('[Netlify Function] YOUTUBE_API_KEY not found in environment variables');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'YOUTUBE_API_KEY not configured',
+          message: 'Please set YOUTUBE_API_KEY in Netlify environment variables and redeploy'
+        })
+      };
+    }
+    
+    console.log(`[Netlify Function] YOUTUBE_API_KEY found: ${apiKey.substring(0, 10)}...`);
+    
     // Parse query parameters
     const queryParams = event.queryStringParameters || {};
     const { q: query, category, regionCode = 'US', maxResults = 20, pageToken } = queryParams;
