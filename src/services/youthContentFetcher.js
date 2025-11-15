@@ -302,32 +302,60 @@ const fetchFromYouTubeYouthAPI = async (queries) => {
 
 /**
  * Fetch trending videos from Invidious (fallback for production)
+ * Tries multiple instances to handle CORS and downtime
  */
 const fetchInvidiousTrending = async (region = 'US') => {
-  try {
-    const url = `${config.invidiousInstance}/api/v1/trending?region=${region}`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    
-    if (response.ok) {
-      const data = await response.json();
-      return data.slice(0, config.maxVideosPerLoad).map(video => ({
-        id: video.videoId,
-        title: video.title,
-        channel: video.author,
-        description: video.description?.substring(0, 150) + '...' || 'No description available',
-        thumbnail: video.videoThumbnails?.[4]?.url || video.videoThumbnails?.[0]?.url,
-        views: formatNumber(video.viewCount || 0),
-        likes: formatNumber(video.likeCount || 0),
-        comments: formatNumber(0),
-        careerCategory: 'creative_career',
-        tags: [],
-        isLocalArtist: false,
-        category: null
-      }));
+  // List of Invidious instances to try (in order of preference)
+  const instances = [
+    'https://yewtu.be',
+    'https://invidious.flokinet.to',
+    'https://invidious.snopyta.org',
+    'https://vid.puffyan.us',
+    'https://invidious.io.lol',
+    'https://invidious.osi.kr'
+  ];
+
+  for (const instance of instances) {
+    try {
+      console.log(`[Invidious] Trying instance: ${instance}`);
+      const url = `${instance}/api/v1/trending?region=${region}`;
+      
+      const response = await fetch(url, { 
+        signal: AbortSignal.timeout(8000),
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[Invidious] Successfully fetched from ${instance}`);
+        
+        return data.slice(0, config.maxVideosPerLoad).map(video => ({
+          id: video.videoId,
+          title: video.title,
+          channel: video.author,
+          description: video.description?.substring(0, 150) + '...' || 'No description available',
+          thumbnail: video.videoThumbnails?.[4]?.url || video.videoThumbnails?.[0]?.url,
+          views: formatNumber(video.viewCount || 0),
+          likes: formatNumber(video.likeCount || 0),
+          comments: formatNumber(0),
+          careerCategory: 'creative_career',
+          tags: [],
+          isLocalArtist: false,
+          category: null
+        }));
+      } else {
+        console.warn(`[Invidious] ${instance} returned ${response.status}`);
+      }
+    } catch (error) {
+      console.warn(`[Invidious] ${instance} failed:`, error.message);
+      continue; // Try next instance
     }
-  } catch (error) {
-    console.error('[Invidious] Error fetching trending:', error);
   }
+  
+  console.error('[Invidious] All instances failed');
   return [];
 };
 

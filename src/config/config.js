@@ -12,8 +12,10 @@ export const config = {
   apiMode: import.meta.env.VITE_API_MODE || 'backend',
   
   // Backend API URL - uses environment variable in production
-  // Set VITE_BACKEND_API_URL in Netlify environment variables
-  backendApiUrl: import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001/api',
+  // On Netlify, functions are available at /api/* automatically
+  // For local dev, use localhost:3001
+  backendApiUrl: import.meta.env.VITE_BACKEND_API_URL || 
+    (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api'),
   
   // YouTube API Configuration (only needed if not using backend)
   // Get your API key from: https://console.cloud.google.com/
@@ -27,7 +29,8 @@ export const config = {
   defaultRegion: 'US',
   
   // Invidious instance (if using invidious mode)
-  invidiousInstance: 'https://invidious.io.lol',
+  // Will try multiple instances automatically if one fails
+  invidiousInstance: 'https://yewtu.be',
   
   // Video category preferences
   // Options: 'trending', 'music', 'gaming', 'news', 'movies', 'sports'
