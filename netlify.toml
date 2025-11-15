@@ -6,6 +6,11 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[functions]
+  # Include backend dependencies in functions bundle
+  included_files = ["backend/**"]
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/api/youtube/top"
   to = "/.netlify/functions/youtube-top"
