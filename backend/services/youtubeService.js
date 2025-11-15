@@ -58,6 +58,9 @@ export const searchVideos = async (query, maxResults = 20, pageToken = null) => 
     };
   } catch (error) {
     console.error('[YouTube] Search error:', error.response?.data || error.message);
+    if (error.response?.data) {
+      console.error('[YouTube] Full error details:', JSON.stringify(error.response.data, null, 2));
+    }
     throw new Error(`YouTube search failed: ${error.message}`);
   }
 };
@@ -220,39 +223,52 @@ const CATEGORY_QUERIES = {
  * Search videos by category - randomly selects a career from the category
  */
 const searchVideosByCategory = async (category, maxResults = 20, pageToken = null) => {
-  const careers = CATEGORY_CAREERS[category] || CATEGORY_QUERIES[category] || [category.toLowerCase()];
-  
-  // Randomly select a career from this category
-  const randomCareer = careers[Math.floor(Math.random() * careers.length)];
-  const searchQuery = `how to become ${randomCareer} OR ${randomCareer} career OR ${randomCareer} day in the life`;
-  
-  console.log(`[YouTube] Selected career from ${category}: ${randomCareer}`);
-  
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error('YOUTUBE_API_KEY is not set');
+  try {
+    const careers = CATEGORY_CAREERS[category] || CATEGORY_QUERIES[category] || [category.toLowerCase()];
+    
+    // Randomly select a career from this category
+    const randomCareer = careers[Math.floor(Math.random() * careers.length)];
+    const searchQuery = `how to become ${randomCareer} OR ${randomCareer} career OR ${randomCareer} day in the life`;
+    
+    console.log(`[YouTube] Selected career from ${category}: ${randomCareer}`);
+    console.log(`[YouTube] Search query: ${searchQuery}`);
+    
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      throw new Error('YOUTUBE_API_KEY is not set');
+    }
+    
+    const params = {
+      part: 'id,snippet',
+      q: searchQuery,
+      type: 'video',
+      maxResults: Math.min(maxResults, 50),
+      order: 'viewCount',
+      relevanceLanguage: 'en', // English only
+      key: apiKey
+    };
+    
+    if (pageToken) {
+      params.pageToken = pageToken;
+    }
+    
+    console.log(`[YouTube] Calling API with params:`, JSON.stringify({ ...params, key: `${apiKey.substring(0, 10)}...` }));
+    const response = await axios.get(`${YOUTUBE_API_BASE}/search`, { params });
+    
+    return {
+      videoIds: response.data.items.map(item => item.id.videoId),
+      nextPageToken: response.data.nextPageToken || null
+    };
+  } catch (error) {
+    console.error('[YouTube] Category search error:', error.message);
+    if (error.response?.data) {
+      console.error('[YouTube] YouTube API error details:', JSON.stringify(error.response.data, null, 2));
+      console.error('[YouTube] Error code:', error.response.data.error?.code);
+      console.error('[YouTube] Error message:', error.response.data.error?.message);
+      console.error('[YouTube] Error reason:', error.response.data.error?.errors?.[0]?.reason);
+    }
+    throw error;
   }
-  
-  const params = {
-    part: 'id,snippet',
-    q: searchQuery,
-    type: 'video',
-    maxResults: Math.min(maxResults, 50),
-    order: 'viewCount',
-    relevanceLanguage: 'en', // English only
-    key: apiKey
-  };
-  
-  if (pageToken) {
-    params.pageToken = pageToken;
-  }
-  
-  const response = await axios.get(`${YOUTUBE_API_BASE}/search`, { params });
-  
-  return {
-    videoIds: response.data.items.map(item => item.id.videoId),
-    nextPageToken: response.data.nextPageToken || null
-  };
 };
 
 /**
