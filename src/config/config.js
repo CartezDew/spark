@@ -8,10 +8,12 @@ export const config = {
   // Backend API Configuration
   // Set to 'backend' to use your Node.js/Express backend
   // Other options: 'youtube', 'invidious', or 'mock'
-  apiMode: 'backend', // Use backend API (recommended)
+  // In production, will auto-detect based on VITE_BACKEND_API_URL
+  apiMode: import.meta.env.VITE_API_MODE || 'backend',
   
-  // Backend API URL
-  backendApiUrl: 'http://localhost:3001/api',
+  // Backend API URL - uses environment variable in production
+  // Set VITE_BACKEND_API_URL in Netlify environment variables
+  backendApiUrl: import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001/api',
   
   // YouTube API Configuration (only needed if not using backend)
   // Get your API key from: https://console.cloud.google.com/

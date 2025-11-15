@@ -15,7 +15,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+// CORS - allow all origins in production, localhost in development
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? true // Allow all origins in production
+    : ['http://localhost:5173', 'http://localhost:3000'], // Local dev
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Request logging middleware
