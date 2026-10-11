@@ -85,7 +85,7 @@ export const fetchYouthContent = async (region = 'US', school = null, category =
     return enrichWithCareerTags(allVideos);
   } catch (error) {
     console.error('Error fetching youth content:', error);
-    return fetchMockYouthContent(region, school);
+    throw error;
   }
 };
 
@@ -115,7 +115,11 @@ const CAREER_CATEGORIES = [
  */
 const fetchFromBackend = async (region = 'US', school = null, category = null, pageToken = null) => {
   try {
-    console.log('[Backend] Fetching videos from backend API...');
+    console.log('[Backend] ========================================');
+    console.log('[Backend] 🔄 Starting API fetch...');
+    console.log('[Backend] Backend URL:', config.backendApiUrl);
+    console.log('[Backend] API Mode:', config.apiMode);
+    console.log('[Backend] ========================================');
     
     // Check if backend URL is localhost in production (won't work)
     if (typeof window !== 'undefined' && config.backendApiUrl.includes('localhost') && window.location.hostname !== 'localhost') {
@@ -132,26 +136,34 @@ const fetchFromBackend = async (region = 'US', school = null, category = null, p
       url += `&pageToken=${encodeURIComponent(pageToken)}`;
     }
     
-    console.log(`[Backend] Calling: ${url}`);
+    console.log(`[Backend] 📡 Calling API: ${url}`);
+    
+    // Create timeout with better browser compatibility
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     const response = await fetch(url, {
-      // Add timeout for production
-      signal: AbortSignal.timeout(10000) // 10 second timeout
-    });
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeoutId));
+    
+    console.log('[Backend] ✅ Got response! Status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[Backend] API error ${response.status}:`, errorText);
+      console.error(`[Backend] ❌ API error ${response.status}:`, errorText);
       throw new Error(`Backend API error: ${response.status}`);
     }
     
     const data = await response.json();
     
+    console.log('[Backend] 📦 Response data:', data);
+    
     if (!data.success || !data.data) {
+      console.error('[Backend] ❌ Invalid response structure:', data);
       throw new Error('Invalid response from backend');
     }
     
-    console.log(`[Backend] Received ${data.data.length} videos from category: ${selectedCategory}`);
+    console.log(`[Backend] ✅ SUCCESS! Received ${data.data.length} REAL videos from category: ${selectedCategory}`);
     
     // Transform backend response to frontend format
     const videos = data.data.map(video => ({
@@ -176,34 +188,13 @@ const fetchFromBackend = async (region = 'US', school = null, category = null, p
       category: selectedCategory
     };
   } catch (error) {
-    console.error('[Backend] Error fetching from backend:', error);
-    
-    // If we're in production and backend fails, try to use Invidious if available
-    if (config.apiMode === 'backend' && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-      console.log('[Backend] Production backend failed. Attempting to use Invidious fallback...');
-      try {
-        const invidiousVideos = await fetchInvidiousTrending(region);
-        if (invidiousVideos && invidiousVideos.length > 0) {
-          console.log(`[Backend] Using ${invidiousVideos.length} videos from Invidious fallback`);
-          return {
-            videos: invidiousVideos,
-            nextPageToken: null,
-            category: null
-          };
-        }
-      } catch (invError) {
-        console.error('[Backend] Invidious fallback also failed:', invError);
-      }
-    }
-    
-    console.log('[Backend] Falling back to mock data');
-    // Fallback to mock data if backend fails
-    const mockVideos = fetchMockYouthContent(region, school);
-    return {
-      videos: mockVideos,
-      nextPageToken: null,
-      category: null
-    };
+    console.error('[Backend] ========================================');
+    console.error('[Backend] ❌ CRITICAL ERROR - API FETCH FAILED!');
+    console.error('[Backend] Error type:', error.name);
+    console.error('[Backend] Error message:', error.message);
+    console.error('[Backend] Full error:', error);
+    console.error('[Backend] ========================================');
+    throw error;
   }
 };
 
@@ -320,13 +311,16 @@ const fetchInvidiousTrending = async (region = 'US') => {
       console.log(`[Invidious] Trying instance: ${instance}`);
       const url = `${instance}/api/v1/trending?region=${region}`;
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
       const response = await fetch(url, { 
-        signal: AbortSignal.timeout(8000),
+        signal: controller.signal,
         mode: 'cors',
         headers: {
           'Accept': 'application/json'
         }
-      });
+      }).finally(() => clearTimeout(timeoutId));
       
       if (response.ok) {
         const data = await response.json();
@@ -400,74 +394,124 @@ const fetchFromInvidiousYouth = async (queries) => {
 const fetchMockYouthContent = async (region, school) => {
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  const youthVideoIds = [
-    'kJQP7kiw5Fk', // Despacito - music video
-    '9bZkp7q19f0', // Gangnam Style - viral dance
-    'OPf0YbXqDm0', // Ed Sheeran - music
-    '60ItHLz5WEA', // Alan Walker - electronic music
-    'RgKAFK5djSk', // Wiz Khalifa - rap
-    'hT_nvWreIhg', // OneRepublic - pop
-    'FlsCjmMhFmw', // Post Malone - hip hop
-    'pt8VYOfr8To', // Bruno Mars - pop
-    'YQHsXMglC9A', // Adele - music
-    'fJ9rUzIMcZQ', // Mark Ronson - producer
-    'nfWlot6h_JM', // Charlie Puth - pop
-    'KQ6zr6kCPj8', // David Guetta - EDM
-    'kXYiU_JCYtU', // Sia - pop
-    'JGwWNGJdvx8', // Ed Sheeran - Shape of You
-    'dQw4w9WgXcQ'  // Popular music
+  const CAREER_CATEGORIES_FULL = [
+    'Business & Management',
+    'Animation & Visual Effects',
+    'Writing & Journalism',
+    'Music',
+    'Sports',
+    'Film & Television'
   ];
   
-  const careerTitles = [
-    'How to Become a Music Producer | Day in the Life',
-    'Behind the Scenes: Music Video Production',
-    'Choreographer Career: How I Got Started',
-    'Music Video Director: A Day on Set',
-    'How to Make Beats: Music Production Tutorial',
-    'Rapper Journey: From Studio to Stage',
-    'Music Video Behind the Scenes: Making of Hit Song',
-    'Creative Director: What I Do All Day',
-    'Video Editor Career: Editing Music Videos',
-    'Music Industry: How to Break In',
-    'Studio Session: Making a Hit Song',
-    'Dancer to Choreographer: My Career Path',
-    'Music Producer: Creating Beats in the Studio',
-    'Filmmaker: Directing Music Videos',
-    'Content Creator: Building a Music Career'
-  ];
+  const careerTitlesByCategory = {
+    'Business & Management': [
+      'How to Become a Talent Manager | Career Guide',
+      'Event Coordinator: Day in the Life',
+      'Marketing Manager: Behind the Scenes',
+      'Production Management Career Path',
+      'Business Development in Entertainment',
+      'PR Specialist: What I Do All Day',
+      'Casting Director Career Journey',
+      'Entertainment Accountant Explained',
+      'Legal Advisor in the Music Industry',
+      'Administrative Support: Career Insights'
+    ],
+    'Animation & Visual Effects': [
+      '3D Animator: Making Animated Movies',
+      'VFX Artist Behind the Scenes',
+      'Motion Graphics Designer Day in the Life',
+      'Graphic Designer Career in Entertainment',
+      'Character Animation: How I Got Started',
+      'Compositor: VFX Breakdown',
+      'Rigging Artist Tutorial',
+      'Concept Art for Games and Film',
+      'Storyboard Artist Career Path',
+      'Technical Director: Animation Pipeline'
+    ],
+    'Writing & Journalism': [
+      'Content Creator: Building Your Brand',
+      'Entertainment Journalist Career Guide',
+      'Scriptwriting 101: How to Break In',
+      'Entertainment Writer: What I Do',
+      'Publicist in the Entertainment Industry',
+      'Copywriter for Brands: Day in the Life',
+      'Magazine Editor Career Journey',
+      'Social Media Manager for Artists',
+      'Professional Blogger: Making Money',
+      'Communications Director Career Path'
+    ],
+    'Music': [
+      'Music Producer: Studio Session',
+      'Audio Engineer: What I Do All Day',
+      'Songwriter: Creating Hit Songs',
+      'Singer: Journey to Success',
+      'DJ Career: From Bedroom to Big Stage',
+      'Music Director: Behind the Scenes',
+      'Sound Design for Film and Games',
+      'Mixing Engineer: Studio Techniques',
+      'Mastering Engineer Explained',
+      'Studio Manager Career Guide'
+    ],
+    'Sports': [
+      'Sports Broadcaster: Play-by-Play Career',
+      'Athletic Trainer Day in the Life',
+      'Sports Marketing: Behind the Scenes',
+      'Game Day Operations Manager',
+      'Events Coordinator for Sports Teams',
+      'Sports Sound Engineer Career',
+      'Talent Scout: Finding the Next Star',
+      'Sports Merchandising Manager',
+      'Digital Designer for Sports Brands',
+      'Sports Content Producer Career'
+    ],
+    'Film & Television': [
+      'Director: Making My First Film',
+      'Cinematographer: Day on Set',
+      'Video Editor Career Path',
+      'Actor: Auditioning and Acting Career',
+      'Casting Director: How I Choose Actors',
+      'Set Designer: Creating Movie Sets',
+      'Costume Designer Behind the Scenes',
+      'Makeup Artist for Film and TV',
+      'Sound Engineer on Movie Sets',
+      'Camera Operator: Film Production'
+    ]
+  };
   
-  const localArtists = school ? [
-    `${school} Alumni Music Success Story`,
-    `Local Artist from ${school}`,
-    `${school} Music Program Highlights`
-  ] : region.includes('Atlanta') ? [
-    'Atlanta Rapper: Rising Star',
-    'ATL Music Producer: Studio Tour',
-    'Atlanta Hip Hop Scene: Documentary',
-    'Local Atlanta Artist: Journey to Success'
-  ] : [];
+  // Generate 100 videos (80+ as requested, with buffer)
+  const videos = [];
+  const targetCount = 100;
   
-  const allTitles = [...careerTitles, ...localArtists];
-  
-  return youthVideoIds.map((videoId, index) => {
-    const title = allTitles[index % allTitles.length];
-    const category = detectCareerCategory(title);
+  for (let i = 0; i < targetCount; i++) {
+    // Cycle through categories
+    const categoryIndex = i % CAREER_CATEGORIES_FULL.length;
+    const category = CAREER_CATEGORIES_FULL[categoryIndex];
+    const titlesForCategory = careerTitlesByCategory[category];
+    const titleIndex = Math.floor(i / CAREER_CATEGORIES_FULL.length) % titlesForCategory.length;
+    const title = titlesForCategory[titleIndex];
     
-    return {
+    // Generate a unique video ID using picsum seed
+    const videoId = `mock-${category.replace(/\s+/g, '-').toLowerCase()}-${i}`;
+    const careerCategory = detectCareerCategory(title);
+    
+    videos.push({
       id: videoId,
       title: title,
-      channel: getChannelForCategory(category),
+      channel: getChannelForCategory(careerCategory),
       description: `Discover the world of ${category}. This video shows what it's really like to work in the creative industry. Perfect for young people exploring career options.`,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      thumbnail: `https://picsum.photos/seed/${videoId}/1920/1080`,
       likes: formatNumber(Math.floor(Math.random() * 500) + 50) + 'K',
       views: formatNumber(Math.floor(Math.random() * 1000) + 100) + 'M',
       comments: formatNumber(Math.floor(Math.random() * 50) + 5) + 'K',
       publishedAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
-      careerCategory: category,
-      tags: generateTagsForCategory(category),
-      isLocalArtist: localArtists.some(artist => title.includes(artist))
-    };
-  });
+      careerCategory: careerCategory,
+      category: category, // Add full category name for shorts
+      tags: generateTagsForCategory(careerCategory),
+      isLocalArtist: school && i % 20 === 0 // Every 20th video is a local artist
+    });
+  }
+  
+  return videos;
 };
 
 /**

@@ -13,6 +13,7 @@ let userBehaviorData = {
   reactions: {}, // videoId -> reaction type
   comments: {}, // videoId -> comment text
   skippedVideos: new Set(), // Videos that were quickly skipped
+  highEngagement: new Set(), // Videos with high engagement
   interests: {}, // careerCategory -> interest score
   categoryWatchHistory: [], // Array of categories watched in order
   currentCategoryStreak: { category: null, count: 0 }, // Track consecutive category watches
@@ -28,11 +29,22 @@ export const initializeTracker = () => {
     const saved = localStorage.getItem('spark_user_behavior');
     if (saved) {
       const parsed = JSON.parse(saved);
+      
+      // Safely convert arrays to Sets
+      const likesArray = Array.isArray(parsed.likes) ? parsed.likes : [];
+      const skippedArray = Array.isArray(parsed.skippedVideos) ? parsed.skippedVideos : [];
+      const engagementArray = Array.isArray(parsed.highEngagement) ? parsed.highEngagement : [];
+      
       userBehaviorData = {
         ...userBehaviorData,
-        ...parsed,
-        likes: new Set(parsed.likes || []),
-        skippedVideos: new Set(parsed.skippedVideos || []),
+        watchTime: parsed.watchTime || {},
+        replays: parsed.replays || {},
+        reactions: parsed.reactions || {},
+        comments: parsed.comments || {},
+        interests: parsed.interests || {},
+        likes: new Set(likesArray),
+        skippedVideos: new Set(skippedArray),
+        highEngagement: new Set(engagementArray),
         categoryWatchHistory: parsed.categoryWatchHistory || [],
         currentCategoryStreak: parsed.currentCategoryStreak || { category: null, count: 0 },
         preferredCategory: parsed.preferredCategory || null
@@ -40,6 +52,22 @@ export const initializeTracker = () => {
     }
   } catch (error) {
     console.error('Error loading user behavior:', error);
+    // Reset to clean state on error
+    userBehaviorData = {
+      watchTime: {},
+      scrollPatterns: [],
+      likes: new Set(),
+      replays: {},
+      reactions: {},
+      comments: {},
+      skippedVideos: new Set(),
+      highEngagement: new Set(),
+      interests: {},
+      categoryWatchHistory: [],
+      currentCategoryStreak: { category: null, count: 0 },
+      preferredCategory: null,
+      lastUpdated: Date.now()
+    };
   }
 };
 
@@ -359,6 +387,7 @@ const saveToStorage = () => {
       ...userBehaviorData,
       likes: Array.from(userBehaviorData.likes),
       skippedVideos: Array.from(userBehaviorData.skippedVideos),
+      highEngagement: Array.from(userBehaviorData.highEngagement || []),
       categoryWatchHistory: userBehaviorData.categoryWatchHistory,
       currentCategoryStreak: userBehaviorData.currentCategoryStreak,
       preferredCategory: userBehaviorData.preferredCategory,

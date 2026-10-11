@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test YouTube API</title>
+</head>
+<body>
+    <h1>Testing YouTube API</h1>
+    <button onclick="testAPI()">Test API</button>
+    <pre id="output"></pre>
+    
+    <script>
+        async function testAPI() {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing...\n';
+            
+            const apiUrl = 'https://cool-biscochitos-b96e4c.netlify.app/api/youtube/top?category=Music&regionCode=US&maxResults=5';
+            
+            output.textContent += `Calling: ${apiUrl}\n\n`;
+            
+            try {
+                const response = await fetch(apiUrl);
+                output.textContent += `Status: ${response.status}\n`;
+                
+                const data = await response.json();
+                output.textContent += `Response:\n${JSON.stringify(data, null, 2)}`;
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    output.textContent += `\n\n✅ SUCCESS! Got ${data.data.length} videos`;
+                    output.textContent += `\nFirst video: ${data.data[0].title}`;
+                } else {
+                    output.textContent += `\n\n❌ No videos returned`;
+                }
+            } catch (error) {
+                output.textContent += `\n\n❌ Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

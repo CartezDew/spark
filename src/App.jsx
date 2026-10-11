@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navigation';
 import VideoFeed from './components/VideoFeed';
 import CareerInsights from './components/CareerInsights';
+import Leaderboard from './pages/Leaderboard';
 import './App.css';
 
 function App() {
@@ -32,12 +34,22 @@ function App() {
         onRegionChange={handleRegionChange}
         onSchoolChange={handleSchoolChange}
       />
-      <VideoFeed 
-        region={currentRegion}
-        category="trending"
-        school={selectedSchool}
-      />
-      <CareerInsights />
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            <>
+              <VideoFeed 
+                region={currentRegion}
+                category="trending"
+                school={selectedSchool}
+              />
+              <CareerInsights />
+            </>
+          } 
+        />
+        <Route path="/leaderboard" element={<Leaderboard />} />
+      </Routes>
     </div>
   );
 }

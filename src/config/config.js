@@ -9,6 +9,7 @@ export const config = {
   // Set to 'backend' to use your Node.js/Express backend
   // Other options: 'youtube', 'invidious', or 'mock'
   // In production, will auto-detect based on VITE_BACKEND_API_URL
+  // Use VITE_API_MODE environment variable to override (e.g., 'mock' for testing)
   apiMode: import.meta.env.VITE_API_MODE || 'backend',
   
   // Backend API URL - uses environment variable in production
@@ -39,8 +40,8 @@ export const config = {
   // Enable auto-play videos when in view
   autoPlayVideos: true,
   
-  // Cache duration in milliseconds
-  cacheDuration: 10 * 60 * 1000 // 10 minutes
+  // Cache duration in milliseconds (set to 0 for no caching)
+  cacheDuration: 0 // No caching - always fetch fresh videos
 };
 
 export default config;

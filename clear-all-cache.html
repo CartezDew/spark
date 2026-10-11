@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Spark Cache</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        .output {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧹 Spark Cache Cleaner</h1>
+    <p>Click the button below to clear all cached data and fix localStorage errors.</p>
+    
+    <button onclick="clearCache()">Clear All Cache</button>
+    
+    <div class="output" id="output"></div>
+    
+    <script>
+        function clearCache() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🧹 Clearing cache...<br>';
+            
+            // Clear all localStorage
+            const before = localStorage.length;
+            const keys = Object.keys(localStorage);
+            
+            output.innerHTML += `Found ${before} items in localStorage<br>`;
+            
+            keys.forEach(key => {
+                output.innerHTML += `Removing: ${key}<br>`;
+                localStorage.removeItem(key);
+            });
+            
+            // Also clear sessionStorage
+            sessionStorage.clear();
+            
+            output.innerHTML += '<br>✅ Cache cleared!<br>';
+            output.innerHTML += `✅ Removed ${before} items<br>`;
+            output.innerHTML += '<br>🔄 Please close this tab and refresh your app!<br>';
+        }
+    </script>
+</body>
+</html>

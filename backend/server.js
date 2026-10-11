@@ -16,7 +16,9 @@ dotenv.config({ path: join(__dirname, '.env') });
 
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import apiRoutes from './routes/api.js';
+import pointsRoutes from './routes/points.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,8 +40,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// Connect to MongoDB
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/spark';
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    console.log('✅ Connected to MongoDB');
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err.message);
+    console.log('⚠️  Continuing without database (points features will not work)');
+  });
+
 // Routes
 app.use('/api', apiRoutes);
+app.use('/api/points', pointsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -76,6 +90,7 @@ app.listen(PORT, () => {
   console.log(`\n🚀 Spark Backend Server running on http://localhost:${PORT}`);
   console.log(`📺 YouTube API: http://localhost:${PORT}/api/youtube/top`);
   console.log(`🎮 Twitch API: http://localhost:${PORT}/api/twitch/top`);
+  console.log(`🏆 Points API: http://localhost:${PORT}/api/points`);
   console.log(`❤️  Health Check: http://localhost:${PORT}/api/health\n`);
   
   // Validate environment variables

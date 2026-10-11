@@ -16,13 +16,8 @@ let videoCache = {
  * Main function to fetch popular videos based on config
  */
 export const fetchPopularVideos = async (region = config.defaultRegion) => {
-  // Check cache first
-  if (shouldUseCache(region)) {
-    console.log('Using cached videos');
-    return videoCache.data;
-  }
-
-  console.log(`Fetching popular videos using ${config.apiMode} mode...`);
+  // Always fetch fresh videos - no caching
+  console.log(`Fetching fresh videos using ${config.apiMode} mode...`);
 
   let videos = [];
 
@@ -40,13 +35,7 @@ export const fetchPopularVideos = async (region = config.defaultRegion) => {
         break;
     }
 
-    // Update cache
-    videoCache = {
-      data: videos,
-      timestamp: Date.now(),
-      region: region
-    };
-
+    // No caching - always return fresh videos
     return videos;
   } catch (error) {
     console.error('Error fetching videos:', error);

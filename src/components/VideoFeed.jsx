@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import VideoCard from './VideoCard';
+import InlineShorts from './InlineShorts';
 import { fetchYouthContent, fetchMoreYouthContent } from '../services/youthContentFetcher';
 import { getPersonalizedFeed } from '../services/aiRecommendationEngine';
 import { trackScroll, getPreferredCategory, resetCategoryPreference } from '../services/userBehaviorTracker';
@@ -17,6 +18,7 @@ const CAREER_CATEGORIES = [
 
 const VideoFeed = ({ region = 'US', category = 'trending', school = null }) => {
   const [videos, setVideos] = useState([]);
+  const [contentItems, setContentItems] = useState([]); // Mixed videos and shorts
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -25,6 +27,27 @@ const VideoFeed = ({ region = 'US', category = 'trending', school = null }) => {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const containerRef = useRef(null);
   const observerRef = useRef(null);
+  
+  // Create mixed content (videos + shorts) whenever videos change
+  useEffect(() => {
+    if (videos.length > 0) {
+      const mixed = [];
+      videos.forEach((video, index) => {
+        mixed.push({ type: 'video', data: video, index });
+        // Insert shorts every 8 videos
+        if ((index + 1) % 8 === 0 && index < videos.length - 1) {
+          mixed.push({ 
+            type: 'shorts', 
+            data: {
+              category: video.category || CAREER_CATEGORIES[Math.floor(Math.random() * CAREER_CATEGORIES.length)],
+              position: Math.floor((index + 1) / 8)
+            }
+          });
+        }
+      });
+      setContentItems(mixed);
+    }
+  }, [videos]);
 
   useEffect(() => {
     loadVideos();
@@ -56,6 +79,12 @@ const VideoFeed = ({ region = 'US', category = 'trending', school = null }) => {
     }
 
     try {
+      console.log('[VideoFeed] ========================================');
+      console.log('[VideoFeed] API mode:', config.apiMode);
+      console.log('[VideoFeed] Backend URL:', config.backendApiUrl);
+      console.log('[VideoFeed] Auto refresh interval:', config.autoRefreshInterval);
+      console.log('[VideoFeed] ========================================');
+      
       const location = school ? `${school} (${region})` : region;
       console.log(`Loading youth content for: ${location}, category: ${selectedCategory}`);
       
@@ -231,12 +260,20 @@ const VideoFeed = ({ region = 'US', category = 'trending', school = null }) => {
 
   return (
     <div className="video-feed" ref={containerRef}>
-      {videos.map((video, index) => (
-        <VideoCard 
-          key={`${video.id}-${index}`}
-          video={video} 
-          isActive={index === activeVideoIndex}
-        />
+      {contentItems.map((item, index) => (
+        item.type === 'video' ? (
+          <VideoCard 
+            key={`video-${item.data.id}-${index}`}
+            video={item.data} 
+            isActive={item.index === activeVideoIndex}
+          />
+        ) : (
+          <InlineShorts
+            key={`shorts-${item.data.position}-${index}`}
+            category={item.data.category}
+            position={item.data.position}
+          />
+        )
       ))}
       
       {loadingMore && (

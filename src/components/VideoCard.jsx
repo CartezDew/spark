@@ -8,6 +8,7 @@ import {
   hasLiked,
   getReplayCount
 } from '../services/userBehaviorTracker';
+import { awardVideoWatchPoints, awardLikePoints } from '../services/pointsService';
 import './VideoCard.css';
 
 const VideoCard = ({ video, isActive }) => {
@@ -23,7 +24,7 @@ const VideoCard = ({ video, isActive }) => {
     setReplayCount(getReplayCount(video.id));
   }, [video.id]);
 
-  // Track watch time with category
+  // Track watch time with category and award points
   useEffect(() => {
     if (isActive && !watchStartTime) {
       setWatchStartTime(Date.now());
@@ -32,6 +33,17 @@ const VideoCard = ({ video, isActive }) => {
       // Track with category for category preference detection
       const category = video.category || video.careerCategory || null;
       trackWatchTime(video.id, watchDuration, 180000, category); // Assume 3 min average video
+      
+      // Award points for watching video
+      if (category) {
+        awardVideoWatchPoints(category, watchDuration, 180000).then((result) => {
+          if (result && result.badgesEarned && result.badgesEarned.length > 0) {
+            // Show badge notification (optional - can add toast notification here)
+            console.log('🎉 Badges earned:', result.badgesEarned);
+          }
+        });
+      }
+      
       setWatchStartTime(null);
     }
   }, [isActive, video.id, video.category, video.careerCategory, watchStartTime]);
@@ -56,6 +68,12 @@ const VideoCard = ({ video, isActive }) => {
     } else {
       trackLike(video.id, video.careerCategory);
       setLiked(true);
+      
+      // Award points for liking
+      const category = video.category || video.careerCategory;
+      if (category) {
+        awardLikePoints(category);
+      }
     }
   };
 
@@ -67,6 +85,12 @@ const VideoCard = ({ video, isActive }) => {
   const handleReaction = (reactionType) => {
     trackReaction(video.id, reactionType, video.careerCategory);
   };
+
+  // Safety check - don't render if video data is incomplete
+  if (!video || !video.id || !video.title) {
+    console.error('Invalid video data:', video);
+    return null;
+  }
 
   return (
     <div className="video-card">
@@ -85,8 +109,8 @@ const VideoCard = ({ video, isActive }) => {
       <div className="video-info">
         <div className="video-details">
           <h3 className="video-title">{video.title}</h3>
-          <p className="video-channel">{video.channel}</p>
-          <p className="video-description">{video.description}</p>
+          <p className="video-channel">{video.channel || 'Unknown Channel'}</p>
+          <p className="video-description">{video.description || 'No description available'}</p>
         </div>
         
         <div className="video-actions">
